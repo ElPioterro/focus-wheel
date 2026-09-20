@@ -10,8 +10,22 @@
   // Geometry (matches viewBox="0 0 600 600")
   var CX = 300;
   var CY = 300;
+  var OUTER_RADIUS = 270; // the main wheel edge
+  var INNER_RADIUS = 95; // the core-desire circle
   var TEXT_RADIUS = 190; // where the 12 outer labels sit
   var HIT_RADIUS = 46; // invisible clickable area per position
+
+  // Decoration geometry
+  var SPOKE_INNER = 100; // spoke starts just outside the inner circle
+  var SPOKE_OUTER = 262; // spoke ends just inside the outer circle
+  var GUIDE_RADIUS = 245; // dashed guide ring between text and outer edge
+  var ANCHOR_DOT_R = 3.5; // little anchor dots on the outer ring
+
+  // Color progression for filled thoughts: light/muted at the first
+  // position, gradually warmer and deeper toward the last, giving a
+  // gentle sense of building momentum. [r, g, b].
+  var PROGRESS_LIGHT = [170, 160, 148];
+  var PROGRESS_DEEP = [150, 110, 80];
 
   // Wrapping + typography
   var OUTER_MAX_CHARS = 25;
@@ -85,13 +99,74 @@
   // ---------------------------------------------------------------------------
   // Rendering the wheel
   // ---------------------------------------------------------------------------
-  function positionCoords(index) {
-    // Index 0 = 12 o'clock (top); clockwise every 30 degrees.
+  // Point on a circle for a given position index.
+  // Index 0 = 12 o'clock (top); clockwise every 30 degrees.
+  function pointOnCircle(index, radius) {
     var angle = (-90 + index * 30) * (Math.PI / 180);
     return {
-      x: CX + TEXT_RADIUS * Math.cos(angle),
-      y: CY + TEXT_RADIUS * Math.sin(angle),
+      x: CX + radius * Math.cos(angle),
+      y: CY + radius * Math.sin(angle),
     };
+  }
+
+  function positionCoords(index) {
+    return pointOnCircle(index, TEXT_RADIUS);
+  }
+
+  // Interpolated fill color for a filled position (light -> deep).
+  function colorForIndex(index) {
+    var t = POSITION_COUNT > 1 ? index / (POSITION_COUNT - 1) : 0;
+    var mix = function (a, b) {
+      return Math.round(a + (b - a) * t);
+    };
+    return (
+      "rgb(" +
+      mix(PROGRESS_LIGHT[0], PROGRESS_DEEP[0]) +
+      ", " +
+      mix(PROGRESS_LIGHT[1], PROGRESS_DEEP[1]) +
+      ", " +
+      mix(PROGRESS_LIGHT[2], PROGRESS_DEEP[2]) +
+      ")"
+    );
+  }
+
+  // Build the faint decorative layer once: 12 spokes, a dashed guide ring,
+  // and small anchor dots on the outer ring.
+  function buildDecorations() {
+    var decor = document.getElementById("decor");
+    if (!decor) return;
+    while (decor.firstChild) decor.removeChild(decor.firstChild);
+
+    // Dashed guide ring
+    var guide = document.createElementNS(SVG_NS, "circle");
+    guide.setAttribute("class", "guide-ring");
+    guide.setAttribute("cx", CX);
+    guide.setAttribute("cy", CY);
+    guide.setAttribute("r", GUIDE_RADIUS);
+    guide.setAttribute("stroke-dasharray", "2 8");
+    guide.setAttribute("stroke-linecap", "round");
+    decor.appendChild(guide);
+
+    for (var i = 0; i < POSITION_COUNT; i++) {
+      var inner = pointOnCircle(i, SPOKE_INNER);
+      var outer = pointOnCircle(i, SPOKE_OUTER);
+
+      var spoke = document.createElementNS(SVG_NS, "line");
+      spoke.setAttribute("class", "spoke");
+      spoke.setAttribute("x1", inner.x);
+      spoke.setAttribute("y1", inner.y);
+      spoke.setAttribute("x2", outer.x);
+      spoke.setAttribute("y2", outer.y);
+      decor.appendChild(spoke);
+
+      var dotPos = pointOnCircle(i, OUTER_RADIUS);
+      var dot = document.createElementNS(SVG_NS, "circle");
+      dot.setAttribute("class", "anchor-dot");
+      dot.setAttribute("cx", dotPos.x);
+      dot.setAttribute("cy", dotPos.y);
+      dot.setAttribute("r", ANCHOR_DOT_R);
+      decor.appendChild(dot);
+    }
   }
 
   // Build the 12 outer position groups once.
@@ -135,6 +210,8 @@
     if (value) {
       group.classList.add("filled");
       textEl.classList.remove("placeholder");
+      // Progression color: lighter at the first thought, deeper at the last.
+      textEl.style.fill = colorForIndex(index);
       renderLines(
         textEl,
         wrapText(value, OUTER_MAX_CHARS),
@@ -145,6 +222,7 @@
     } else {
       group.classList.remove("filled");
       textEl.classList.add("placeholder");
+      textEl.style.fill = "";
       // Subtle clock-number hint when empty.
       renderLines(
         textEl,
@@ -181,9 +259,43 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Completion state
+  // ---------------------------------------------------------------------------
+  var wasComplete = false;
+
+  function isComplete() {
+    if (!wheelData.center) return false;
+    return wheelData.positions.every(function (p) {
+      return !!p;
+    });
+  }
+
+  function updateCompletion() {
+    var complete = isComplete();
+    var app = document.querySelector(".app");
+
+    if (complete) {
+      svg.classList.add("complete");
+      if (app) app.classList.add("is-complete");
+      if (!wasComplete) {
+        // Trigger a single gentle pulse (restart the animation).
+        svg.classList.remove("celebrate");
+        void svg.getBoundingClientRect(); // force reflow
+        svg.classList.add("celebrate");
+      }
+    } else {
+      svg.classList.remove("complete", "celebrate");
+      if (app) app.classList.remove("is-complete");
+    }
+
+    wasComplete = complete;
+  }
+
   function renderAll() {
     renderCenter();
     for (var i = 0; i < POSITION_COUNT; i++) renderPosition(i);
+    updateCompletion();
   }
 
   // ---------------------------------------------------------------------------
@@ -286,6 +398,7 @@
       wheelData.positions[currentTarget.index] = value;
       renderPosition(currentTarget.index);
     }
+    updateCompletion();
     closeModal();
   }
 
@@ -487,12 +600,29 @@
   // ---------------------------------------------------------------------------
   function init() {
     buildModal();
+    buildDecorations();
     buildPositions();
     renderAll();
 
     // Event delegation for all wheel clicks (shapes + text).
     svg.addEventListener("click", handleSvgClick);
     document.addEventListener("keydown", handleKeydown);
+
+    // Remove the one-shot pulse class once it finishes, so it can replay.
+    svg.addEventListener("animationend", function () {
+      svg.classList.remove("celebrate");
+    });
+
+    // Collapsible instruction panel.
+    var toggle = document.querySelector(".instructions-toggle");
+    var body = document.getElementById("instructions-body");
+    if (toggle && body) {
+      toggle.addEventListener("click", function () {
+        var expanded = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", String(!expanded));
+        body.hidden = expanded;
+      });
+    }
 
     var clearBtn = document.getElementById("clear");
     if (clearBtn) clearBtn.addEventListener("click", clearWheel);

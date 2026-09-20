@@ -11,6 +11,9 @@
   --filled-ink: #4a4a4a;
   --glow: rgba(127, 181, 176, 0.35);
   --border-soft: #d9d4cc;
+  --decor-line: #e0ddd8;
+  --anchor: rgba(127, 181, 176, 0.5);
+  --inner-fill-strong: rgba(212, 169, 140, 0.28);
   --transition: 0.3s ease;
 }
 
@@ -78,7 +81,7 @@ body {
 
 .outer-ring {
   stroke: var(--outer-stroke);
-  stroke-width: 1.25;
+  stroke-width: 2;
 }
 
 .inner-ring {
@@ -86,6 +89,27 @@ body {
   stroke-width: 1.25;
   fill: var(--inner-fill-soft);
   cursor: pointer;
+  transition: fill var(--transition);
+}
+
+/* Decorative layer: spokes, guide ring, anchor dots (non-interactive) */
+.decor {
+  pointer-events: none;
+}
+
+.spoke {
+  stroke: var(--decor-line);
+  stroke-width: 1;
+}
+
+.guide-ring {
+  fill: none;
+  stroke: var(--decor-line);
+  stroke-width: 1;
+}
+
+.anchor-dot {
+  fill: var(--anchor);
 }
 
 /* SVG text slots (center desire + 12 outer positions) */
@@ -119,10 +143,10 @@ body {
   fill: transparent;
 }
 
-/* Filled state: deeper color + soft glow */
+/* Filled state: fill color is set inline by JS (progression);
+   a very soft warm glow adds a gentle highlight. */
 .position.filled .wheel-text {
-  fill: var(--filled-ink);
-  filter: drop-shadow(0 0 5px var(--glow));
+  filter: drop-shadow(0 0 4px rgba(156, 122, 94, 0.22));
 }
 
 #center-text.filled {
@@ -130,15 +154,129 @@ body {
   filter: drop-shadow(0 0 6px rgba(212, 169, 140, 0.4));
 }
 
-/* Instruction text — small, italic, easy to ignore */
+/* Completion state: stronger inner fill + one gentle ring pulse */
+.wheel.complete .inner-ring {
+  fill: var(--inner-fill-strong);
+}
+
+.wheel.celebrate .outer-ring {
+  animation: ring-pulse 1.2s ease;
+}
+
+@keyframes ring-pulse {
+  0% {
+    stroke-width: 2;
+    opacity: 1;
+  }
+  50% {
+    stroke-width: 3.25;
+    opacity: 0.8;
+  }
+  100% {
+    stroke-width: 2;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel.celebrate .outer-ring {
+    animation: none;
+  }
+}
+
+/* Completion message — quiet, appears only when the wheel is full */
+.completion-message {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  color: var(--inner-fill);
+  display: none;
+}
+
+.app.is-complete .completion-message {
+  display: block;
+  animation: gentle-fade 0.6s ease both;
+}
+
+@keyframes gentle-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app.is-complete .completion-message {
+    animation: none;
+  }
+}
+
+/* Collapsible instruction panel — small, italic, easy to ignore */
 .instructions {
   max-width: 460px;
-  margin: 0;
+  width: 100%;
   text-align: center;
+}
+
+.instructions-toggle {
+  font: inherit;
   font-size: 0.8rem;
   font-style: italic;
   color: var(--ink-faint);
-  line-height: 1.6;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color var(--transition);
+}
+
+.instructions-toggle:hover {
+  color: var(--ink-soft);
+}
+
+.instructions-toggle:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.instructions-toggle .chevron {
+  display: inline-block;
+  transition: transform var(--transition);
+}
+
+.instructions-toggle[aria-expanded="true"] .chevron {
+  transform: rotate(90deg);
+}
+
+.instructions-body {
+  margin: 0.75rem auto 0;
+  max-width: 420px;
+  text-align: left;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--ink-faint);
+  line-height: 1.7;
+}
+
+.instructions-body[hidden] {
+  display: none;
+}
+
+.instructions-body ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.instructions-body li {
+  margin: 0.25rem 0;
 }
 
 /* Toolbar */

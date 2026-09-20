@@ -21,6 +21,9 @@
         <!-- Large outer circle (the main wheel) -->
         <circle class="ring outer-ring" cx="300" cy="300" r="270" />
 
+        <!-- Decorative spokes, guide ring, and anchor dots (populated by app.js) -->
+        <g id="decor" class="decor"></g>
+
         <!-- Smaller inner circle (core desire) -->
         <circle class="ring inner-ring" cx="300" cy="300" r="95" data-slot="center" />
 
@@ -39,11 +42,28 @@
       </svg>
     </div>
 
-    <p class="instructions">
-      Write your core desire in the center. Then, moving around the wheel,
-      fill each of the 12 positions with a statement you genuinely believe
-      and that feels good — building momentum toward your desire.
-    </p>
+    <p class="completion-message">Your focus is aligned ✨</p>
+
+    <div class="instructions">
+      <button
+        class="instructions-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="instructions-body"
+      >
+        How to use this wheel
+        <span class="chevron" aria-hidden="true">▸</span>
+      </button>
+      <div class="instructions-body" id="instructions-body" hidden>
+        <ul>
+          <li>Write your desire in the center.</li>
+          <li>Start at 12 o'clock with a thought that feels true and good.</li>
+          <li>Continue clockwise, each thought feeling a little better.</li>
+          <li>If a thought doesn't feel good, skip it and try another.</li>
+          <li>Twelve statements that “stick” complete the wheel.</li>
+        </ul>
+      </div>
+    </div>
 
     <div class="toolbar" role="toolbar" aria-label="Actions">
       <button id="export-png" type="button">Export PNG</button>

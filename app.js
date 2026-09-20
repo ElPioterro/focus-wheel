@@ -20,6 +20,7 @@
   var SPOKE_OUTER = 262; // spoke ends just inside the outer circle
   var GUIDE_RADIUS = 245; // dashed guide ring between text and outer edge
   var ANCHOR_DOT_R = 3.5; // little anchor dots on the outer ring
+  var DIVIDER_OFFSET = 15; // half a segment; puts dividers between labels
 
   // Color progression for filled thoughts: light/muted at the first
   // position, gradually warmer and deeper toward the last, giving a
@@ -104,8 +105,9 @@
   // ---------------------------------------------------------------------------
   // Point on a circle for a given position index.
   // Index 0 = 12 o'clock (top); clockwise every 30 degrees.
-  function pointOnCircle(index, radius) {
-    var angle = (-90 + index * 30) * (Math.PI / 180);
+  // offsetDeg nudges the angle (used to place dividers between labels).
+  function pointOnCircle(index, radius, offsetDeg) {
+    var angle = (-90 + index * 30 + (offsetDeg || 0)) * (Math.PI / 180);
     return {
       x: CX + radius * Math.cos(angle),
       y: CY + radius * Math.sin(angle),
@@ -151,8 +153,10 @@
     decor.appendChild(guide);
 
     for (var i = 0; i < POSITION_COUNT; i++) {
-      var inner = pointOnCircle(i, SPOKE_INNER);
-      var outer = pointOnCircle(i, SPOKE_OUTER);
+      // Dividers sit halfway between labels, so the text falls inside the
+      // segments rather than on the lines.
+      var inner = pointOnCircle(i, SPOKE_INNER, DIVIDER_OFFSET);
+      var outer = pointOnCircle(i, SPOKE_OUTER, DIVIDER_OFFSET);
 
       var spoke = document.createElementNS(SVG_NS, "line");
       spoke.setAttribute("class", "spoke");
@@ -162,7 +166,7 @@
       spoke.setAttribute("y2", outer.y);
       decor.appendChild(spoke);
 
-      var dotPos = pointOnCircle(i, OUTER_RADIUS);
+      var dotPos = pointOnCircle(i, OUTER_RADIUS, DIVIDER_OFFSET);
       var dot = document.createElementNS(SVG_NS, "circle");
       dot.setAttribute("class", "anchor-dot");
       dot.setAttribute("cx", dotPos.x);

@@ -138,6 +138,14 @@ body {
   cursor: pointer;
 }
 
+/* Keyboard focus rings for the SVG slots */
+.position:focus-visible,
+.inner-ring:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
 /* Invisible hit area so empty positions are still clickable */
 .position .hit-area {
   fill: transparent;
@@ -315,6 +323,37 @@ body {
   outline-offset: 2px;
 }
 
+/* Meta line: last-saved indicator + attribution footer */
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.last-saved {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+
+.footer {
+  margin: 0;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+/* No-JavaScript notice */
+.noscript-msg {
+  margin: 0;
+  max-width: 460px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
 /* Modal / overlay */
 .modal-backdrop {
   position: fixed;
@@ -415,5 +454,44 @@ body {
 
   .app {
     gap: 1.25rem;
+  }
+}
+
+/* Print: just the wheel, centered on a clean white page */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .toolbar,
+  .instructions,
+  .last-saved,
+  .completion-message {
+    display: none !important;
+  }
+
+  .app {
+    min-height: auto;
+    justify-content: flex-start;
+    gap: 1rem;
+    padding: 0;
+  }
+
+  .wheel-container {
+    width: 100%;
+    max-width: 17cm;
+  }
+
+  .wheel {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .footer {
+    margin-top: 0.5rem;
+  }
+
+  @page {
+    margin: 1.5cm;
   }
 }

@@ -41,6 +41,9 @@
   var PAGE_BG = "#f9f7f4"; // matches the page background
   var SVG_SIZE = 600; // matches the viewBox
 
+  // Persistence
+  var STORAGE_KEY = "focusWheel:data";
+
   // ---- State ----
   var wheelData = {
     center: "",
@@ -179,6 +182,9 @@
       var group = document.createElementNS(SVG_NS, "g");
       group.setAttribute("class", "position");
       group.setAttribute("data-slot", String(i));
+      // Keyboard-focusable so Tab moves through the 12 positions in order.
+      group.setAttribute("tabindex", "0");
+      group.setAttribute("role", "button");
 
       // Invisible hit area so empty positions are clickable.
       var hit = document.createElementNS(SVG_NS, "circle");
@@ -206,6 +212,11 @@
     var textEl = group.querySelector("text");
     var coords = positionCoords(index);
     var value = wheelData.positions[index];
+    var label = index === 0 ? 12 : index;
+    group.setAttribute(
+      "aria-label",
+      value ? "Position " + label + ": " + value : "Position " + label + ", empty"
+    );
 
     if (value) {
       group.classList.add("filled");
@@ -236,6 +247,13 @@
 
   function renderCenter() {
     var value = wheelData.center;
+    var innerRing = svg.querySelector(".inner-ring");
+    if (innerRing) {
+      innerRing.setAttribute(
+        "aria-label",
+        value ? "Core desire: " + value : "Core desire, empty"
+      );
+    }
     if (value) {
       centerText.classList.add("filled");
       centerText.classList.remove("placeholder");
@@ -399,6 +417,7 @@
       renderPosition(currentTarget.index);
     }
     updateCompletion();
+    saveData();
     closeModal();
   }
 
@@ -423,6 +442,21 @@
     }
   }
 
+  // Enter / Space on a focused wheel slot opens its editor.
+  function handleWheelKeydown(e) {
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    var el = e.target.closest ? e.target.closest("[data-slot]") : null;
+    if (!el) return;
+
+    e.preventDefault();
+    var slot = el.getAttribute("data-slot");
+    if (slot === "center") {
+      openModal({ type: "center" });
+    } else {
+      openModal({ type: "position", index: parseInt(slot, 10) });
+    }
+  }
+
   function clearWheel() {
     var ok = window.confirm(
       "Clear the entire wheel? This will erase your center desire and all 12 thoughts."
@@ -432,6 +466,66 @@
     wheelData.center = "";
     wheelData.positions = new Array(POSITION_COUNT).fill("");
     renderAll();
+    clearStorage();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Persistence (localStorage)
+  // ---------------------------------------------------------------------------
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function updateLastSaved(ts) {
+    var el = document.getElementById("last-saved");
+    if (!el) return;
+    if (!ts) {
+      el.textContent = "";
+      return;
+    }
+    var d = new Date(ts);
+    el.textContent =
+      "Last saved: " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+
+  function saveData() {
+    try {
+      var payload = { data: wheelData, savedAt: Date.now() };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      updateLastSaved(payload.savedAt);
+    } catch (e) {
+      // Storage unavailable (private mode, disabled, quota) — fail quietly.
+    }
+  }
+
+  function loadData() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var payload = JSON.parse(raw);
+      if (!payload || !payload.data) return;
+
+      if (typeof payload.data.center === "string") {
+        wheelData.center = payload.data.center;
+      }
+      if (Array.isArray(payload.data.positions)) {
+        for (var i = 0; i < POSITION_COUNT; i++) {
+          wheelData.positions[i] = payload.data.positions[i] || "";
+        }
+      }
+      if (payload.savedAt) updateLastSaved(payload.savedAt);
+    } catch (e) {
+      // Corrupt or unreadable data — ignore and start fresh.
+    }
+  }
+
+  function clearStorage() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      // Ignore.
+    }
+    updateLastSaved(null);
   }
 
   // ---------------------------------------------------------------------------
@@ -602,10 +696,12 @@
     buildModal();
     buildDecorations();
     buildPositions();
+    loadData(); // restore any saved wheel before first render
     renderAll();
 
     // Event delegation for all wheel clicks (shapes + text).
     svg.addEventListener("click", handleSvgClick);
+    svg.addEventListener("keydown", handleWheelKeydown);
     document.addEventListener("keydown", handleKeydown);
 
     // Remove the one-shot pulse class once it finishes, so it can replay.

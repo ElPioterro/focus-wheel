@@ -1,0 +1,13 @@
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Exported wheels (generated locally)
+focus-wheel-*.png
+focus-wheel-*.pdf

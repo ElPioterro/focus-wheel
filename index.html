@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Wheel</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <h1 class="title">Focus Wheel</h1>
+
+    <div id="wheel-container" class="wheel-container">
+      <svg
+        class="wheel"
+        viewBox="0 0 600 600"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="Focus wheel with a central desire and twelve surrounding statements"
+      >
+        <!-- Large outer circle (the main wheel) -->
+        <circle class="ring outer-ring" cx="300" cy="300" r="270" />
+
+        <!-- Smaller inner circle (core desire) -->
+        <circle class="ring inner-ring" cx="300" cy="300" r="95" data-slot="center" />
+
+        <!-- Center desire text (populated by app.js) -->
+        <text
+          id="center-text"
+          class="wheel-text center-text"
+          data-slot="center"
+          x="300"
+          y="300"
+          text-anchor="middle"
+        ></text>
+
+        <!-- 12 text positions around the outer ring (populated by app.js) -->
+        <g id="slots"></g>
+      </svg>
+    </div>
+
+    <p class="instructions">
+      Write your core desire in the center. Then, moving around the wheel,
+      fill each of the 12 positions with a statement you genuinely believe
+      and that feels good — building momentum toward your desire.
+    </p>
+
+    <div class="toolbar" role="toolbar" aria-label="Actions">
+      <button id="export-png" type="button">Export PNG</button>
+      <button id="export-pdf" type="button">Export PDF</button>
+      <button id="clear" type="button">Clear</button>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
